@@ -1,40 +1,39 @@
 package blps.entities;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 
 import java.util.HashSet;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 @Entity
 public class Customer {
   @Id
-  @GeneratedValue
-  private long id;
+  private String id;
 
-  private String displayname;
+  private String displayName;
 
   @OneToMany
-  private Set<CustomerOrder> ordersInFlight = new HashSet<>();
+  private Set<Order> ordersInFlight = new HashSet<>();
 
-  public Customer(String displayname) {
-    this.displayname = displayname;
+  public String getId() {
+    return id;
+  }
+
+  public Customer(String displayName) {
+    this.displayName = displayName;
   }
 
   public Customer() {
     this("");
   }
 
-  public Set<CustomerOrder> getOrdersInFlight() {
+  public Set<Order> getOrdersInFlight() {
     return ordersInFlight;
   }
 
-  public void removeOrder(CustomerOrder order) {
-    if (!ordersInFlight.remove(order)) {
-      throw new NoSuchElementException("Customer has no such order");
-    }
+  public String getDisplayName() {
+    return displayName;
   }
 }
