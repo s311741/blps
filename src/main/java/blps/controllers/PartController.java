@@ -2,7 +2,6 @@ package blps.controllers;
 
 import blps.entities.Order;
 import blps.entities.Part;
-import blps.exceptions.NoPartsAvailableException;
 import blps.repositories.OrderRepository;
 import blps.repositories.PartRepository;
 import org.springframework.http.HttpStatus;
@@ -43,17 +42,15 @@ public class PartController {
   @DeleteMapping
   private void retire(@RequestParam long id) {
     Part part = partRepo.findById(id).get();
-    synchronized (part) {
-      long available = part.getTotal();
-      if (available != 0) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("Cannot retire car part with id [%d] when there are still %d of them present", id, available));
-      }
-      for (Order order : orderRepository.findAll()) {
-        if (order.getPart().getId() == id) {
-          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("Cannot retire car part while stray order from customer %s exists on it", order.getCustomer().getDisplayName()));
-        }
-      }
-      partRepo.delete(part);
+    long available = part.getTotal();
+    if (available != 0) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("Cannot retire car part with id [%d] when there are still %d of them present", id, available));
     }
+    for (Order order : orderRepository.findAll()) {
+      if (order.getPart().getId() == id) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("Cannot retire car part while stray order from customer %s exists on it", order.getCustomer().getDisplayName()));
+      }
+    }
+    partRepo.delete(part);
   }
 }
