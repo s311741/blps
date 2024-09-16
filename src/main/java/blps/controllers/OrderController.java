@@ -33,8 +33,8 @@ public class OrderController {
     this.customerRepo = customerRepo;
   }
 
-  @GetMapping
-  private Order get(@RequestParam long id) throws NoSuchElementException {
+  @GetMapping("/{id}")
+  private Order get(@PathVariable long id) throws NoSuchElementException {
     return getOrderOfCustomer(getCurrentCustomer(), id);
   }
 
@@ -56,8 +56,8 @@ public class OrderController {
     return order.getId();
   }
 
-  @PutMapping("/confirm")
-  private long confirmOrder(@RequestParam long id, @RequestParam long proofOfPayment) throws NoSuchElementException, InvalidPaymentException {
+  @PutMapping("/{id}/confirm")
+  private long confirmOrder(@PathVariable long id, @RequestParam long proofOfPayment) throws NoSuchElementException, InvalidPaymentException {
     Customer customer = getCurrentCustomer();
     Order order = getOrderOfCustomer(customer, id);
     Part part = order.getPart();
@@ -70,8 +70,8 @@ public class OrderController {
     return part.getId();
   }
 
-  @DeleteMapping("/cancel")
-  private void cancelOrder(@RequestParam long id) throws NoSuchElementException {
+  @DeleteMapping("/{id}")
+  private void cancelOrder(@PathVariable long id) throws NoSuchElementException {
     Customer customer = getCurrentCustomer();
     Order order = getOrderOfCustomer(customer, id);
     log.info("Cancelling order {} by {}", id, customer.getDisplayName());

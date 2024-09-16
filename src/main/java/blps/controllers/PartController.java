@@ -19,18 +19,18 @@ public class PartController {
     this.orderRepository = orderRepository;
   }
 
-  @GetMapping("/available")
-  private long getAvailable(@RequestParam long id) {
+  @GetMapping("/{id}/available")
+  private long getAvailable(@PathVariable long id) {
     return partRepo.findById(id).map(Part::getAvailable).orElse(0L);
   }
 
-  @GetMapping
-  private Part get(@RequestParam long id) {
+  @GetMapping("/{id}")
+  private Part get(@PathVariable long id) {
     return partRepo.findById(id).get();
   }
 
-  @PutMapping("/add")
-  private void add(@RequestParam long id, @RequestParam long newlyAvailable) {
+  @PutMapping("/{id}/add")
+  private void add(@PathVariable long id, @RequestParam long newlyAvailable) {
     partRepo.findById(id).get().addToStock(newlyAvailable);
   }
 
@@ -39,8 +39,8 @@ public class PartController {
     return partRepo.save(new Part(initiallyAvailable)).getId();
   }
 
-  @DeleteMapping
-  private void retire(@RequestParam long id) {
+  @DeleteMapping("/{id}")
+  private void retire(@PathVariable long id) {
     Part part = partRepo.findById(id).get();
     long available = part.getTotal();
     if (available != 0) {
