@@ -8,6 +8,7 @@ import blps.exceptions.NoPartsAvailableException;
 import blps.repositories.PartRepository;
 import blps.repositories.OrderRepository;
 import blps.repositories.CustomerRepository;
+import blps.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -26,11 +27,13 @@ public class OrderController {
   private final PartRepository partRepo;
   private final OrderRepository orderRepo;
   private final CustomerRepository customerRepo;
+  private final UserRepository userRepo;
 
-  public OrderController(CustomerRepository customerRepo, PartRepository partRepo, OrderRepository orderRepo) {
+  public OrderController(CustomerRepository customerRepo, PartRepository partRepo, OrderRepository orderRepo, UserRepository userRepo) {
     this.partRepo = partRepo;
     this.orderRepo = orderRepo;
     this.customerRepo = customerRepo;
+    this.userRepo = userRepo;
   }
 
   @GetMapping("/{id}")
@@ -43,7 +46,7 @@ public class OrderController {
     final Customer customer = getCurrentCustomer();
     final Part part = partRepo.findById(partId).get();
 
-    log.info("Adding order for part {} by {}", partId, customer.getDisplayName());
+    log.info("Adding order for part {} by {}", partId, customer.getName());
 
     try {
       part.reserveOne();
@@ -61,7 +64,7 @@ public class OrderController {
     Customer customer = getCurrentCustomer();
     Order order = getOrderOfCustomer(customer, id);
     Part part = order.getPart();
-    log.info("Confirming order {} by {} on part {}", order.getId(), customer.getDisplayName(), part.getId());
+    log.info("Confirming order {} by {} on part {}", order.getId(), customer.getName(), part.getId());
     order.verifyPayment(proofOfPayment);
     orderRepo.delete(order);
 
@@ -74,13 +77,19 @@ public class OrderController {
   private void cancelOrder(@PathVariable long id) throws NoSuchElementException {
     Customer customer = getCurrentCustomer();
     Order order = getOrderOfCustomer(customer, id);
-    log.info("Cancelling order {} by {}", id, customer.getDisplayName());
+    log.info("Cancelling order {} by {}", id, customer.getName());
     orderRepo.delete(order);
   }
 
   private Customer getCurrentCustomer() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    var maybeCustomer = customerRepo.findById(auth.getName());
+
+    var maybeUser = userRepo.findByName(auth.getName());
+    if (maybeUser.isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are not a user???");
+    }
+
+    var maybeCustomer = customerRepo.findByUser(maybeUser.get());
     if (maybeCustomer.isEmpty()) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are not a customer");
     }
@@ -90,9 +99,10 @@ public class OrderController {
   private Order getOrderOfCustomer(Customer customer, long orderId) {
     Order order = orderRepo.findById(orderId).get();
     Customer owner = order.getCustomer();
-    if (!owner.getId().equals(customer.getId())) {
-      log.info("Customer {} was trying to access order {}, which belongs to customer {} instead", customer.getDisplayName(), order.getId(), owner.getDisplayName());
-      // Other customers don't need know whether the order even exists, pretend not
+
+    if (owner.getId() != customer.getId()) {
+      log.info("Customer {} was trying to access order {}, which belongs to customer {} instead", customer.getName(), order.getId(), owner.getName());
+      // Other customers don't need know whether the order even existretend not
       throw new ResponseStatusException(HttpStatus.NOT_FOUND);
     }
     return order;
