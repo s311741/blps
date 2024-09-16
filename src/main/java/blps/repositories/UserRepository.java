@@ -1,10 +1,10 @@
 package blps.repositories;
 
+import blps.entities.ServiceUser;
 import org.springframework.data.jpa.repository.JpaRepository;
-import blps.entities.User;
 
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, Long> {
-  Optional<User> findByName(String name);
+public interface UserRepository extends JpaRepository<ServiceUser, Long> {
+  Optional<ServiceUser> findByName(String name);
 }

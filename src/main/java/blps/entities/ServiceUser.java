@@ -6,7 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 
 @Entity(name = "users")
-public class User {
+public class ServiceUser {
   @Id
   @GeneratedValue
   private long id;
@@ -16,12 +16,12 @@ public class User {
   @ManyToOne
   private Role role;
 
-  public User(String name, Role role) {
+  public ServiceUser(String name, Role role) {
     this.name = name;
     this.role = role;
   }
 
-  public User() {
+  public ServiceUser() {
   }
 
   public String getName() {

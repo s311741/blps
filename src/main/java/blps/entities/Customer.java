@@ -14,7 +14,7 @@ public class Customer {
   private long id;
 
   @OneToOne(optional = true)
-  private User user;
+  private ServiceUser user;
 
   @OneToMany
   private Set<Order> ordersInFlight = new HashSet<>();
@@ -22,7 +22,7 @@ public class Customer {
   public Customer() {
   }
 
-  public Customer(User user) {
+  public Customer(ServiceUser user) {
     this.user = user;
   }
 
