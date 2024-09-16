@@ -4,10 +4,13 @@ import blps.exceptions.NoPartsAvailableException;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
 
 @Entity
+@Transactional(propagation = Propagation.MANDATORY)
 public class Part {
   @Id
   @GeneratedValue
@@ -27,7 +30,7 @@ public class Part {
     return id;
   }
 
-  public synchronized long getAvailable() {
+  public long getAvailable() {
     return total - reserved;
   }
 
@@ -35,18 +38,24 @@ public class Part {
     return total;
   }
 
-  public synchronized void reserveOne() throws NoPartsAvailableException {
+  public void reserveOneUncommitted() throws NoPartsAvailableException {
     if (reserved == total) {
       throw new NoPartsAvailableException(getId());
     }
     ++reserved;
   }
 
+  public void unreserveOneUncommitted() {
+    if (reserved > 0) {
+      --reserved;
+    }
+  }
+
   public void addToStock(long number) {
     total += number;
   }
 
-  public synchronized void confirmSale() {
+  public void confirmSaleUncommitted() {
     if (reserved == 0) {
       throw new NoSuchElementException("This part was never reserved, or sale already confirmed");
     }
