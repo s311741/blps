@@ -9,8 +9,7 @@ public class Order {
   @GeneratedValue
   private long id;
 
-  @ManyToOne
-  private Customer whose;
+  private String whose;
 
   @ManyToOne
   Part part;
@@ -18,12 +17,12 @@ public class Order {
   public Order() {
   }
 
-  public Order(Customer whose, Part part) {
+  public Order(String whose, Part part) {
     this.whose = whose;
     this.part = part;
   }
 
-  public Customer getCustomer() {
+  public String getCustomerName() {
     return whose;
   }
 

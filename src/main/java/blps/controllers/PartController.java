@@ -48,7 +48,7 @@ public class PartController {
     }
     for (Order order : orderRepository.findAll()) {
       if (order.getPart().getId() == id) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("Cannot retire car part while stray order from customer %s exists on it", order.getCustomer().getName()));
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("Cannot retire car part while stray order from customer %s exists on it", order.getCustomerName()));
       }
     }
     partRepo.delete(part);

@@ -1,18 +1,17 @@
 package blps.controllers;
 
-import blps.entities.Part;
-import blps.entities.Customer;
 import blps.entities.Order;
+import blps.entities.Part;
 import blps.exceptions.InvalidPaymentException;
 import blps.exceptions.NoPartsAvailableException;
-import blps.repositories.PartRepository;
 import blps.repositories.OrderRepository;
-import blps.repositories.CustomerRepository;
-import blps.repositories.UserRepository;
+import blps.repositories.PartRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,27 +25,23 @@ public class OrderController {
 
   private final PartRepository partRepo;
   private final OrderRepository orderRepo;
-  private final CustomerRepository customerRepo;
-  private final UserRepository userRepo;
 
-  public OrderController(CustomerRepository customerRepo, PartRepository partRepo, OrderRepository orderRepo, UserRepository userRepo) {
+  public OrderController(PartRepository partRepo, OrderRepository orderRepo) {
     this.partRepo = partRepo;
     this.orderRepo = orderRepo;
-    this.customerRepo = customerRepo;
-    this.userRepo = userRepo;
   }
 
   @GetMapping("/{id}")
   private Order get(@PathVariable long id) throws NoSuchElementException {
-    return getOrderOfCustomer(getCurrentCustomer(), id);
+    return getOrderOfCustomer(getCurrentCustomerName(), id);
   }
 
   @PutMapping
   private long addOrder(@RequestParam long partId) throws NoSuchElementException {
-    final Customer customer = getCurrentCustomer();
+    final String customerName = getCurrentCustomerName();
     final Part part = partRepo.findById(partId).get();
 
-    log.info("Adding order for part {} by {}", partId, customer.getName());
+    log.info("Adding order for part {} by {}", partId, customerName);
 
     try {
       part.reserveOne();
@@ -54,17 +49,17 @@ public class OrderController {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
-    Order order = new Order(customer, part);
+    Order order = new Order(customerName, part);
     orderRepo.save(order);
     return order.getId();
   }
 
   @PutMapping("/{id}/confirm")
   private long confirmOrder(@PathVariable long id, @RequestParam long proofOfPayment) throws NoSuchElementException, InvalidPaymentException {
-    Customer customer = getCurrentCustomer();
-    Order order = getOrderOfCustomer(customer, id);
+    String customerName = getCurrentCustomerName();
+    Order order = getOrderOfCustomer(customerName, id);
     Part part = order.getPart();
-    log.info("Confirming order {} by {} on part {}", order.getId(), customer.getName(), part.getId());
+    log.info("Confirming order {} by {} on part {}", order.getId(), customerName, part.getId());
     order.verifyPayment(proofOfPayment);
     orderRepo.delete(order);
 
@@ -75,33 +70,27 @@ public class OrderController {
 
   @DeleteMapping("/{id}")
   private void cancelOrder(@PathVariable long id) throws NoSuchElementException {
-    Customer customer = getCurrentCustomer();
-    Order order = getOrderOfCustomer(customer, id);
-    log.info("Cancelling order {} by {}", id, customer.getName());
+    String customerName = getCurrentCustomerName();
+    Order order = getOrderOfCustomer(customerName, id);
+    log.info("Cancelling order {} by {}", id, customerName);
     orderRepo.delete(order);
   }
 
-  private Customer getCurrentCustomer() {
+  private static final GrantedAuthority CUSTOMER_ROLE = new SimpleGrantedAuthority("ROLE_CUSTOMER");
+
+  private String getCurrentCustomerName() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-    var maybeUser = userRepo.findByName(auth.getName());
-    if (maybeUser.isEmpty()) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are not a user???");
-    }
-
-    var maybeCustomer = customerRepo.findByUser(maybeUser.get());
-    if (maybeCustomer.isEmpty()) {
+    if (!auth.getAuthorities().contains(CUSTOMER_ROLE)) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are not a customer");
     }
-    return maybeCustomer.get();
+    return auth.getName();
   }
 
-  private Order getOrderOfCustomer(Customer customer, long orderId) {
+  private Order getOrderOfCustomer(String customerName, long orderId) {
     Order order = orderRepo.findById(orderId).get();
-    Customer owner = order.getCustomer();
-
-    if (owner.getId() != customer.getId()) {
-      log.info("Customer {} was trying to access order {}, which belongs to customer {} instead", customer.getName(), order.getId(), owner.getName());
+    String ownerName = order.getCustomerName();
+    if (!ownerName.equals(customerName)) {
+      log.info("Customer {} was trying to access order {}, which belongs to customer {} instead", customerName, order.getId(), ownerName);
       // Other customers don't need know whether the order even existretend not
       throw new ResponseStatusException(HttpStatus.NOT_FOUND);
     }
