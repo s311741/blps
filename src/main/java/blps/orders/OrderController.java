@@ -1,14 +1,10 @@
-package blps.controllers;
+package blps.orders;
 
-import blps.entities.Order;
-import blps.entities.Part;
-import blps.exceptions.InvalidPaymentException;
-import blps.exceptions.NoPartsAvailableException;
-import blps.repositories.OrderRepository;
-import blps.repositories.PartRepository;
+import blps.ReserveMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -25,52 +21,36 @@ import java.util.NoSuchElementException;
 public class OrderController {
   private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
-  private final PartRepository partRepo;
   private final OrderRepository orderRepo;
+  private final KafkaTemplate<String, ReserveMessage> partTemplate;
 
-  public OrderController(PartRepository partRepo, OrderRepository orderRepo) {
-    this.partRepo = partRepo;
+  public OrderController(OrderRepository orderRepo, KafkaTemplate<String, ReserveMessage> partTemplate) {
     this.orderRepo = orderRepo;
+    this.partTemplate = partTemplate;
   }
 
   @GetMapping("/{id}")
   @Transactional
-  protected Order get(@PathVariable long id) throws NoSuchElementException {
+  protected OrderEntity get(@PathVariable long id) throws NoSuchElementException {
     return getOrderOfCustomer(getCurrentCustomerName(), id);
+  }
+
+  @GetMapping("/testKafka")
+  protected void testKafka() {
+    partTemplate.send("part", new ReserveMessage(-1, -2)).thenAccept(sendResult -> log.info("Send confirmed!"));
+    log.info("Sent!");
   }
 
   @PutMapping
   @Transactional
   protected long addOrder(@RequestParam long partId) throws NoSuchElementException {
-    final String customerName = getCurrentCustomerName();
-    final Part part = partRepo.findById(partId).get();
-
-    log.info("Adding order for part {} by {}", partId, customerName);
-
-    try {
-      part.reserveOneUncommitted();
-    } catch (NoPartsAvailableException e) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-    }
-
-    Order order = new Order(customerName, part);
-    orderRepo.save(order);
-    return order.getId();
+    return 0;
   }
 
   @PutMapping("/{id}/confirm")
   @Transactional
   protected long confirmOrder(@PathVariable long id, @RequestParam long proofOfPayment) throws NoSuchElementException, InvalidPaymentException {
-    String customerName = getCurrentCustomerName();
-    Order order = getOrderOfCustomer(customerName, id);
-    Part part = order.getPart();
-    log.info("Confirming order {} by {} on part {}", order.getId(), customerName, part.getId());
-    order.verifyPayment(proofOfPayment);
-    orderRepo.delete(order);
-
-    part.confirmSaleUncommitted();
-    partRepo.save(part);
-    return part.getId();
+    return 0;
   }
 
   @PreAuthorize("hasRole('SELLER')")
@@ -83,13 +63,6 @@ public class OrderController {
   @DeleteMapping("/{id}")
   @Transactional
   protected void cancelOrder(@PathVariable long id) throws NoSuchElementException {
-    String customerName = getCurrentCustomerName();
-    log.info("Cancelling order {} by {}", id, customerName);
-
-    Order order = getOrderOfCustomer(customerName, id);
-    Part part = order.getPart();
-    part.unreserveOneUncommitted();
-    orderRepo.delete(order);
   }
 
   private static final GrantedAuthority CUSTOMER_ROLE = new SimpleGrantedAuthority("ROLE_CUSTOMER");
@@ -103,8 +76,8 @@ public class OrderController {
   }
 
   @Transactional
-  protected Order getOrderOfCustomer(String customerName, long orderId) {
-    Order order = orderRepo.findById(orderId).get();
+  protected OrderEntity getOrderOfCustomer(String customerName, long orderId) {
+    OrderEntity order = orderRepo.findById(orderId).get();
     String ownerName = order.getCustomerName();
     if (!ownerName.equals(customerName)) {
       log.info("Customer {} was trying to access order {}, which belongs to customer {} instead", customerName, order.getId(), ownerName);

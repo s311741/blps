@@ -1,6 +1,5 @@
-package blps.entities;
+package blps.supplies;
 
-import blps.exceptions.NoPartsAvailableException;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -9,9 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
 
-@Entity
+@Entity(name = "part")
 @Transactional(propagation = Propagation.MANDATORY)
-public class Part {
+public class PartEntity {
   @Id
   @GeneratedValue
   private long id;
@@ -19,10 +18,10 @@ public class Part {
   private long total = 0;
   private long reserved = 0;
 
-  public Part() {
+  public PartEntity() {
   }
 
-  public Part(long initiallyAvailable) {
+  public PartEntity(long initiallyAvailable) {
     this.total = initiallyAvailable;
   }
 

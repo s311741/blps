@@ -17,6 +17,7 @@ repositories {
 
 dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-jta-bitronix:2.4.13'

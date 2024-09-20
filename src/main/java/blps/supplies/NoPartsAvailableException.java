@@ -1,4 +1,4 @@
-package blps.exceptions;
+package blps.supplies;
 
 public class NoPartsAvailableException extends Exception {
   public NoPartsAvailableException(long carPartId) {

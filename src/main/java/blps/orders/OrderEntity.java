@@ -1,25 +1,23 @@
-package blps.entities;
+package blps.orders;
 
-import blps.exceptions.InvalidPaymentException;
+import blps.supplies.PartEntity;
 import jakarta.persistence.*;
 
 @Entity(name = "customer_order")
-public class Order {
+public class OrderEntity {
   @Id
   @GeneratedValue
   private long id;
 
   private String whose;
+  long partId;
 
-  @ManyToOne
-  Part part;
-
-  public Order() {
+  public OrderEntity() {
   }
 
-  public Order(String whose, Part part) {
+  public OrderEntity(String whose, long partId) {
     this.whose = whose;
-    this.part = part;
+    this.partId = partId;
   }
 
   public String getCustomerName() {
@@ -30,8 +28,8 @@ public class Order {
     return id;
   }
 
-  public Part getPart() {
-    return part;
+  public long getPartId() {
+    return partId;
   }
 
   public void verifyPayment(long proofOfPayment) throws InvalidPaymentException {
