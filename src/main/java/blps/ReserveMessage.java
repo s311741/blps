@@ -1,4 +1,4 @@
 package blps;
 
-public record ReserveMessage(long id, int reserve) {
+public record ReserveMessage(long id, int reserve, int confirm) {
 }

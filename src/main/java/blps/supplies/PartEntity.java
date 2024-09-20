@@ -37,16 +37,13 @@ public class PartEntity {
     return total;
   }
 
-  public void reserveOneUncommitted() throws NoPartsAvailableException {
-    if (reserved == total) {
-      throw new NoPartsAvailableException(getId());
+  public void reserveUncommitted(long n) {
+    reserved += n;
+    if (reserved > total) {
+      reserved = total;
     }
-    ++reserved;
-  }
-
-  public void unreserveOneUncommitted() {
-    if (reserved > 0) {
-      --reserved;
+    if (reserved < 0) {
+      reserved = 0;
     }
   }
 
@@ -54,11 +51,8 @@ public class PartEntity {
     total += number;
   }
 
-  public void confirmSaleUncommitted() {
-    if (reserved == 0) {
-      throw new NoSuchElementException("This part was never reserved, or sale already confirmed");
-    }
-    --total;
-    --reserved;
+  public void confirmUncommitted(long n) {
+    total -= n;
+    reserved -= n;
   }
 }

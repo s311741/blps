@@ -1,8 +1,10 @@
 package blps.orders;
 
 import blps.ReserveMessage;
+import org.apache.coyote.http11.filters.SavedRequestInputFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.web.embedded.tomcat.TomcatProtocolHandlerCustomizer;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +24,9 @@ public class OrderController {
   private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
   private final OrderRepository orderRepo;
+
   private final KafkaTemplate<String, ReserveMessage> partTemplate;
+  private static final String TOPIC = "part";
 
   public OrderController(OrderRepository orderRepo, KafkaTemplate<String, ReserveMessage> partTemplate) {
     this.orderRepo = orderRepo;
@@ -35,22 +39,34 @@ public class OrderController {
     return getOrderOfCustomer(getCurrentCustomerName(), id);
   }
 
-  @GetMapping("/testKafka")
-  protected void testKafka() {
-    partTemplate.send("part", new ReserveMessage(-1, -2)).thenAccept(sendResult -> log.info("Send confirmed!"));
-    log.info("Sent!");
-  }
-
   @PutMapping
   @Transactional
-  protected long addOrder(@RequestParam long partId) throws NoSuchElementException {
-    return 0;
+  protected long addOrder(@RequestParam long partId) {
+    final String customerName = getCurrentCustomerName();
+    remoteReserveOne(customerName, partId);
+    OrderEntity order = new OrderEntity(customerName, partId);
+    orderRepo.save(order);
+    return order.getId();
+  }
+
+  @DeleteMapping("/{id}")
+  @Transactional
+  protected void cancelOrder(@PathVariable long id) throws NoSuchElementException {
+    final String customerName = getCurrentCustomerName();
+    OrderEntity order = getOrderOfCustomer(customerName, id);
+    long partId = order.getPartId();
+    remoteUnreserveOne(customerName, partId);
+    orderRepo.delete(order);
   }
 
   @PutMapping("/{id}/confirm")
   @Transactional
   protected long confirmOrder(@PathVariable long id, @RequestParam long proofOfPayment) throws NoSuchElementException, InvalidPaymentException {
-    return 0;
+    final String customerName = getCurrentCustomerName();
+    OrderEntity order = getOrderOfCustomer(customerName, id);
+    long partId = order.getPartId();
+    remoteConfirmOne(customerName, partId);
+    return partId;
   }
 
   @PreAuthorize("hasRole('SELLER')")
@@ -58,11 +74,6 @@ public class OrderController {
   @Transactional
   protected void deliverOrder(@PathVariable long id) throws NoSuchElementException {
     orderRepo.deleteById(id);
-  }
-
-  @DeleteMapping("/{id}")
-  @Transactional
-  protected void cancelOrder(@PathVariable long id) throws NoSuchElementException {
   }
 
   private static final GrantedAuthority CUSTOMER_ROLE = new SimpleGrantedAuthority("ROLE_CUSTOMER");
@@ -85,5 +96,17 @@ public class OrderController {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND);
     }
     return order;
+  }
+
+  private void remoteReserveOne(String customerName, long partId) {
+    partTemplate.send(TOPIC, new ReserveMessage(partId, 1, 0));
+  }
+
+  private void remoteUnreserveOne(String customerName, long partId) {
+    partTemplate.send(TOPIC, new ReserveMessage(partId, -1, 0));
+  }
+
+  private void remoteConfirmOne(String customerName, long partId) {
+    partTemplate.send(TOPIC, new ReserveMessage(partId, 0, 1));
   }
 }

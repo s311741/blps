@@ -26,12 +26,12 @@ echo "Part id is $part_id"
 order_id=$(rq some_customer 8080 PUT "/order?partId=$part_id")
 # ...pay for order...
 recv_part_id=$(rq some_customer 8080 PUT "/order/$order_id/confirm?proofOfPayment=123")
-#[ "$part_id" == "$recv_part_id" ]
+[ "$part_id" == "$recv_part_id" ]
 
 # Reserve two parts at once, then pay for both
 order_id1=$(rq some_customer 8080 PUT "/order?partId=$part_id")
 order_id2=$(rq some_customer 8080 PUT "/order?partId=$part_id")
 recv_part_id1=$(rq some_customer 8080 PUT "/order/$order_id1/confirm?proofOfPayment=66")
 recv_part_id2=$(rq some_customer 8080 PUT "/order/$order_id2/confirm?proofOfPayment=77")
-#[ "$part_id" == "$recv_part_id1" ]
-#[ "$part_id" == "$recv_part_id2" ]
+[ "$part_id" == "$recv_part_id1" ]
+[ "$part_id" == "$recv_part_id2" ]
