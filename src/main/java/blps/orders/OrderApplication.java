@@ -16,7 +16,7 @@ import java.util.Collections;
 @EnableKafka
 @EnableJpaRepositories
 @SpringBootApplication
-@ImportResource("classpath:/spring-security.xml")
+@ImportResource("classpath:/security.xml")
 public class OrderApplication {
   public static void main(String[] args) {
     SpringApplication app = new SpringApplication(OrderApplication.class);
