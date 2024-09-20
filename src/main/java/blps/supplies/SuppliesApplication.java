@@ -16,7 +16,6 @@ import java.util.Collections;
 
 @EnableJpaRepositories
 @EnableKafka
-@EnableScheduling
 @ImportResource("classpath:/security.xml")
 @SpringBootApplication
 public class SuppliesApplication {

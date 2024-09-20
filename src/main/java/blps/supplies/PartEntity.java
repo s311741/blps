@@ -6,8 +6,6 @@ import jakarta.persistence.Id;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.NoSuchElementException;
-
 @Entity(name = "part")
 @Transactional(propagation = Propagation.MANDATORY)
 public class PartEntity {
@@ -17,6 +15,8 @@ public class PartEntity {
 
   private long total = 0;
   private long reserved = 0;
+
+  private boolean markedForCleanup = false;
 
   public PartEntity() {
   }
@@ -45,14 +45,29 @@ public class PartEntity {
     if (reserved < 0) {
       reserved = 0;
     }
+    markActive();
   }
 
   public void addToStock(long number) {
     total += number;
+    markActive();
   }
 
   public void confirmUncommitted(long n) {
     total -= n;
     reserved -= n;
+    markActive();
+  }
+
+  public void markForCleanup() {
+    markedForCleanup = true;
+  }
+
+  public void markActive() {
+    markedForCleanup = false;
+  }
+
+  public boolean isMarkedForCleanup() {
+    return markedForCleanup;
   }
 }

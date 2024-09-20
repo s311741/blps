@@ -64,6 +64,7 @@ public class OrderController {
   protected long confirmOrder(@PathVariable long id, @RequestParam long proofOfPayment) throws NoSuchElementException, InvalidPaymentException {
     final String customerName = getCurrentCustomerName();
     OrderEntity order = getOrderOfCustomer(customerName, id);
+    order.verifyPayment(proofOfPayment);
     long partId = order.getPartId();
     remoteConfirmOne(customerName, partId);
     return partId;
